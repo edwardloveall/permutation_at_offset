@@ -12,11 +12,11 @@ class Permutation
   private
 
   def permutation_at_offset(set, offset)
-    result = []
-    permutation_count = Math.gamma(set.size + 1).to_i
     if set.size == 1
       set
     else
+      result = []
+      permutation_count = Math.gamma(set.size + 1).to_i
       wrapped_offset = offset % permutation_count
       section_size = Math.gamma(set.size).to_i
       current_section = wrapped_offset / section_size
