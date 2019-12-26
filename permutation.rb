@@ -28,4 +28,8 @@ class Permutation
       result + permutation_at_offset(new_set, wrapped_offset)
     end
   end
+
+  def factorial(n)
+    Math.gamma(n + 1)
+  end
 end
