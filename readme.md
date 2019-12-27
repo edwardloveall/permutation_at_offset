@@ -6,103 +6,110 @@ Many permutation algorithms generate permutations based on the permutation that 
 A B C D <-- swap A & B to get
 B A C D <-- swap B & C to get
 C A B D <-- swap A & C to get
-A C B D
-etc.
+A C B D ... etc
 ```
 
 Because this requires previous permutations, it's inefficient to get a permutation far down the list. For example if you have a 10 item set, that's 3,628,800 unique permutations. If you want permutation 3,000,000 you have to generate the 2,999,999 before that.
 
-This algorithm aims to generate permutations based only on the number or offset (e.g. 3,000,000) without any knowledge of previous permutations.
+This algorithm aims to generate permutations based only on the original set of items, and the offset (e.g. 3,000,000) without any knowledge of previous permutations.
 
 # How it works
 
-This works by taking advantage of the fact that one valid way to generate permutations keeps one items in the first slot of the permutation. The rest of the numbers also mirrors what the next-smallest permutation does, including the item in the first slot.
+This works by taking advantage of the fact that one valid way to generate permutations keeps consecutive runs of each item in the first slot of the permutation. Also, the remaining items mirror what the next-smallest permutation does, including the rotating item in the first slot.
 
-For example, with a 3 item permutation:
-
-```
-A	B	C
-A	C	B
-B	A	C
-B	C	A
-C	A	B
-C	B	A
-```
-
-There are 6 permutations total, which is 3 [factorial](https://en.wikipedia.org/wiki/Factorial). That means there are 3 sections, and each section features a letter in the first slot. Here's an example of the first six permutations from a 4-item set:
+For example, a 4-item permutation:
 
 ```
-A	B	C	D
-A	B	D	C
-A	C	B	D
-A	C	D	B
-A	D	B	C
-A	D	C	B
+A B C D
+A B D C
+A C B D
+A C D B
+A D B C
+A D C B
+B A C D
+B A D C
+B C A D
+B C D A
+B D A C
+B D C A
+C A B D
+C A D B
+C B A D
+C B D A
+C D A B
+C D B A
+D A B C
+D A C B
+D B A C
+D B C A
+D C A B
+D C B A
 ```
 
-You can see that `A` is in the first slot and the rest mirror the pattern from the 3-item permutation. Each section lasts for the total number of permutations divided by the number of items in the set. 3-item set, 6 permutations total, 6/3 = 2 permutations per section. 4-item set, 24 permutations, 24/4 = 6.
+There are 24 permutations total, which is 4 [factorial](https://en.wikipedia.org/wiki/Factorial). That ends up having 4 sections, and each section features one of each item as the first item in the permutation. First A, then B, etc.
 
-If you can figure out which section you're in, it will be the index of the item in the set that goes in the first slot of the first permutation. Find the first item, drop that item from the set, and recurse through the algorithm again with the new set. It will find the correct item to put in the "first" slot and keep going through until there is only one item left.
+You can see that `A` is in the first slot and the rest mirror the pattern from the 3-item permutation. Each section lasts for the total number of permutations divided by the number of items in the set. 4-item set, 24 permutations total, 24/4 = 6 permutations per section.
 
-Combine them all together and you have your permutation.
+If you can figure out which section you're in based on the offset, it will be the index of the item in the set that goes in the first slot of the first permutation. Note that index, reduce the number of items in the permutation and run it through again and find the new index. Do this until there are only 2 items left. No need to do it for a one-item permutation beacuse there's only one option.
 
-## Definitions
+Loop through the indexes and extract the item at that index into a new array and move to the next. Removing all the items will leave you with one item left which will be the last item in the permutation.
 
-`section size`: number of permutations divided by the number of items in the set
+## Visualization
+
+We'll grab the 9th permutation (a.k.a. offset 8) from a 4-item set.
 
 ```ruby
-set = %w(a, b, c) # length 3
-permutation_length = Math.gamma(set.count + 1).to_i # 6
-section_length = permutation_length / set.count # 2
+set = A B C D
+offset = 8
+length = 4
+section_length = factorial(length) / length # 6
+current_section = offset / section_length # 1, integer division
+
+list_of_indexes = [1]
+length = length - 1
+
+offset = 8
+length = 3
+section_length = factorial(length) / length # 2
+# wrap the offset around the total number of permutations
+wrapped_offset = offset % factorial(length) # 2
+current_section = wrapped_offset / section_length # 1
+
+list_of_indexes = [1, 1]
+length = length - 1
+
+offset = 8
+length = 2
+section_length = factorial(length) / length # 1
+wrapped_offset = offset % factorial(length) # 0
+current_section = wrapped_offset / section_length # 0
+
+list_of_indexes = [1, 1, 0]
 ```
 
-`current section`: when iterating through all the permutations, each `section size` group of permutations is one section. The `current section` is the one the offset is looking at.
+Then take the list of indexes and grab those items one-by-one from the oritinal set:
 
 ```
-section size = 2
-section count = 3
+list_of_indexes = [1, 1, 0]
+set = A B C D
+permutation = empty
 
-section | offset
-0       | 0
-0       | 1
-1       | 2
-1       | 3 <-- current section: 1, offset: 3
-2       | 4
-2       | 5
+list_of_indexes = [_, 1, 0]
+set = A C D
+permutation = B
+
+list_of_indexes = [_, _, 0]
+set = A D
+permutation = B C
+
+list_of_indexes = [_, _, _]
+set = D
+permutation = B C A
 ```
 
-`focus item`: the item from index in the set that matches the `current section`
+Then add the final leftover item to the end of the permutation
 
 ```
-set = %w(a, b, c)
-current_section: 1
-focus_item: `b`
+set = empty
+permutation = B C A D
 ```
-
----
-
-# Algorithm Instructions
-
-## Goal
-
-To retrieve a permutation by index without calculating all previous permutations.
-
-Example:
-
-```ruby
-set = %w(a, b, c)
-offset = 2
-# offset is zero-indexed
-permutation_at_offset(set, offset) # ["b", "a", "c"]
-```
-
-## Process
-
-Arguments are the `set` of items and the `offset` desired. Figure out:
-
-* The number of sections
-* `section size`
-* `current section`
-* `focus item`
-
-Put the focus item at the first index. Take the remaining items and repeat the steps again with the smaller array. If the set length is 2, either keep the items in place if the index is even, or flip them if it's odd.
