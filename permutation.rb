@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class Permutation
   attr_reader :set
 
@@ -22,7 +24,7 @@ class Permutation
     indexes.map { |i| new_set.delete_at(i) } + new_set
   end
 
-  def factorial(n)
-    Math.gamma(n + 1)
+  def factorial(int)
+    Math.gamma(int + 1)
   end
 end
